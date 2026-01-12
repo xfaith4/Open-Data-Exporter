@@ -10,6 +10,8 @@ const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
 const rateLimit = require('express-rate-limit');
+const https = require('https');
+const pkce = require('./src/pkce');
 const app = express();
 
 // Rate limiting middleware to prevent abuse
@@ -34,7 +36,157 @@ const PORT = process.env.PORT || 3000;
 // Store for running processes
 let runningProcesses = {};
 
+// Store for PKCE flow data (in-memory, will be cleared on server restart)
+// In production, this should use a more robust session store
+let pkceStore = {};
+
 // API Routes
+
+// Generate PKCE parameters for OAuth flow
+app.post('/api/oauth/pkce-params', (req, res) => {
+    try {
+        const { clientId, redirectUri, environment } = req.body;
+        
+        if (!clientId || !redirectUri || !environment) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required parameters: clientId, redirectUri, environment' 
+            });
+        }
+
+        const codeVerifier = pkce.generateCodeVerifier();
+        const codeChallenge = pkce.generateCodeChallenge(codeVerifier);
+        const state = pkce.generateState();
+
+        // Store code verifier and state for later verification
+        pkceStore[state] = {
+            codeVerifier,
+            clientId,
+            redirectUri,
+            environment,
+            timestamp: Date.now()
+        };
+
+        // Clean up old entries (older than 10 minutes)
+        const tenMinutesAgo = Date.now() - (10 * 60 * 1000);
+        Object.keys(pkceStore).forEach(key => {
+            if (pkceStore[key].timestamp < tenMinutesAgo) {
+                delete pkceStore[key];
+            }
+        });
+
+        const authUrl = pkce.buildAuthorizationUrl({
+            clientId,
+            redirectUri,
+            environment,
+            codeChallenge,
+            state
+        });
+
+        res.json({ 
+            success: true, 
+            authUrl,
+            state 
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Exchange authorization code for access token
+app.post('/api/oauth/token', (req, res) => {
+    try {
+        const { code, state, redirectUri } = req.body;
+        
+        if (!code || !state) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Missing required parameters: code, state' 
+            });
+        }
+
+        // Retrieve stored PKCE data
+        const pkceData = pkceStore[state];
+        if (!pkceData) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Invalid or expired state parameter' 
+            });
+        }
+
+        // Verify redirect URI matches
+        if (redirectUri && pkceData.redirectUri !== redirectUri) {
+            delete pkceStore[state];
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Redirect URI mismatch' 
+            });
+        }
+
+        const { codeVerifier, clientId, environment } = pkceData;
+        const tokenUrl = `https://login.${environment}/oauth/token`;
+
+        const postData = new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: pkceData.redirectUri,
+            client_id: clientId,
+            code_verifier: codeVerifier
+        }).toString();
+
+        const options = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const tokenReq = https.request(tokenUrl, options, (tokenRes) => {
+            let data = '';
+
+            tokenRes.on('data', (chunk) => {
+                data += chunk;
+            });
+
+            tokenRes.on('end', () => {
+                // Clean up used PKCE data
+                delete pkceStore[state];
+
+                if (tokenRes.statusCode === 200) {
+                    const tokenData = JSON.parse(data);
+                    res.json({ 
+                        success: true, 
+                        accessToken: tokenData.access_token,
+                        tokenType: tokenData.token_type,
+                        expiresIn: tokenData.expires_in
+                    });
+                } else {
+                    res.status(tokenRes.statusCode).json({ 
+                        success: false, 
+                        error: 'Token exchange failed', 
+                        details: data 
+                    });
+                }
+            });
+        });
+
+        tokenReq.on('error', (error) => {
+            delete pkceStore[state];
+            res.status(500).json({ 
+                success: false, 
+                error: 'Token exchange request failed', 
+                details: error.message 
+            });
+        });
+
+        tokenReq.write(postData);
+        tokenReq.end();
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 
 // Get configuration
 app.get('/api/config', (req, res) => {
