@@ -1,0 +1,289 @@
+// Application state
+let currentConfig = null;
+let currentJobs = [];
+
+// Initialize application
+document.addEventListener('DOMContentLoaded', () => {
+    loadExamples();
+    loadDefaultConfig();
+    setupEventListeners();
+});
+
+// Setup event listeners
+function setupEventListeners() {
+    document.getElementById('loadConfigBtn').addEventListener('click', loadSelectedConfig);
+    document.getElementById('newConfigBtn').addEventListener('click', createNewConfig);
+    document.getElementById('saveConfigBtn').addEventListener('click', saveConfiguration);
+    document.getElementById('executeSelectedBtn').addEventListener('click', executeSelectedJobs);
+    document.getElementById('executeAllBtn').addEventListener('click', executeAllJobs);
+    document.getElementById('clearOutputBtn').addEventListener('click', clearOutput);
+    
+    // Auto-update jobs when config changes
+    document.getElementById('configPath').addEventListener('change', loadDefaultConfig);
+}
+
+// Load available example configurations
+async function loadExamples() {
+    try {
+        const response = await fetch('/api/examples');
+        const data = await response.json();
+        
+        if (data.success) {
+            const select = document.getElementById('configSelect');
+            data.examples.forEach(example => {
+                const option = document.createElement('option');
+                option.value = example.path;
+                option.textContent = example.name;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        showToast('Failed to load examples: ' + error.message, 'error');
+    }
+}
+
+// Load selected configuration from dropdown
+async function loadSelectedConfig() {
+    const select = document.getElementById('configSelect');
+    const configPath = select.value;
+    
+    if (!configPath) {
+        showToast('Please select a configuration', 'error');
+        return;
+    }
+    
+    document.getElementById('configPath').value = configPath;
+    await loadDefaultConfig();
+}
+
+// Load default or specified configuration
+async function loadDefaultConfig() {
+    const configPath = document.getElementById('configPath').value;
+    
+    try {
+        const response = await fetch(`/api/config?path=${encodeURIComponent(configPath)}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            currentConfig = data.config;
+            populateConfigForm(data.config);
+            await loadJobs(data.config);
+            showToast('Configuration loaded successfully', 'info');
+        } else {
+            showToast('Failed to load configuration: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error loading configuration: ' + error.message, 'error');
+    }
+}
+
+// Create new empty configuration
+function createNewConfig() {
+    currentConfig = {
+        purecloud: {
+            clientId: "",
+            clientSecret: "",
+            timeout: 10000,
+            environment: ""
+        },
+        requests: {},
+        transforms: {},
+        templates: {},
+        exports: {},
+        configurations: {},
+        jobs: {},
+        customData: {}
+    };
+    
+    populateConfigForm(currentConfig);
+    document.getElementById('jobsList').innerHTML = '<div class="loading">No jobs configured</div>';
+    showToast('New configuration created', 'info');
+}
+
+// Populate form with configuration data
+function populateConfigForm(config) {
+    if (config.purecloud || config.pureCloud) {
+        const pc = config.purecloud || config.pureCloud;
+        document.getElementById('clientId').value = pc.clientId || '';
+        document.getElementById('clientSecret').value = pc.clientSecret || '';
+        document.getElementById('environment').value = pc.environment || '';
+        document.getElementById('timeout').value = pc.timeout || 10000;
+    }
+}
+
+// Load and display jobs
+async function loadJobs(config) {
+    try {
+        const response = await fetch('/api/jobs/list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ config })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            currentJobs = data.jobs;
+            displayJobs(data.jobs);
+        } else {
+            document.getElementById('jobsList').innerHTML = '<div class="loading">Failed to load jobs</div>';
+        }
+    } catch (error) {
+        document.getElementById('jobsList').innerHTML = '<div class="loading">Error loading jobs</div>';
+    }
+}
+
+// Display jobs in the UI
+function displayJobs(jobs) {
+    const jobsList = document.getElementById('jobsList');
+    
+    if (jobs.length === 0) {
+        jobsList.innerHTML = '<div class="loading">No jobs found in configuration</div>';
+        return;
+    }
+    
+    jobsList.innerHTML = jobs.map(job => `
+        <div class="job-item">
+            <input type="checkbox" id="job-${job.key}" value="${job.key}">
+            <div class="job-details">
+                <div class="job-name">${job.name}</div>
+                <div class="job-meta">Key: ${job.key} | Schedule: ${job.cron}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Save configuration
+async function saveConfiguration() {
+    if (!currentConfig) {
+        showToast('No configuration loaded', 'error');
+        return;
+    }
+    
+    // Update config with form values
+    const pc = currentConfig.purecloud || currentConfig.pureCloud || {};
+    pc.clientId = document.getElementById('clientId').value;
+    pc.clientSecret = document.getElementById('clientSecret').value;
+    pc.environment = document.getElementById('environment').value;
+    pc.timeout = parseInt(document.getElementById('timeout').value) || 10000;
+    
+    if (currentConfig.purecloud) {
+        currentConfig.purecloud = pc;
+    } else {
+        currentConfig.pureCloud = pc;
+    }
+    
+    const configPath = document.getElementById('configPath').value;
+    
+    try {
+        const response = await fetch('/api/config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: configPath, config: currentConfig })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Configuration saved successfully!', 'success');
+        } else {
+            showToast('Failed to save configuration: ' + data.error, 'error');
+        }
+    } catch (error) {
+        showToast('Error saving configuration: ' + error.message, 'error');
+    }
+}
+
+// Execute selected jobs
+async function executeSelectedJobs() {
+    const selected = getSelectedJobs();
+    
+    if (selected.length === 0) {
+        showToast('Please select at least one job', 'error');
+        return;
+    }
+    
+    await executeJobs(selected);
+}
+
+// Execute all jobs
+async function executeAllJobs() {
+    const allJobs = currentJobs.map(job => job.key);
+    
+    if (allJobs.length === 0) {
+        showToast('No jobs available to execute', 'error');
+        return;
+    }
+    
+    await executeJobs(allJobs);
+}
+
+// Get selected job keys
+function getSelectedJobs() {
+    const checkboxes = document.querySelectorAll('#jobsList input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// Execute jobs
+async function executeJobs(jobKeys) {
+    const clientId = document.getElementById('clientId').value;
+    const clientSecret = document.getElementById('clientSecret').value;
+    const environment = document.getElementById('environment').value;
+    const configPath = document.getElementById('configPath').value;
+    
+    if (!clientId || !clientSecret) {
+        showToast('Please provide Client ID and Client Secret', 'error');
+        return;
+    }
+    
+    const outputBox = document.getElementById('executionOutput');
+    outputBox.innerHTML = '<div class="output-placeholder">Executing jobs...</div>';
+    
+    showToast('Starting job execution...', 'info');
+    
+    try {
+        const response = await fetch('/api/jobs/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                configPath,
+                jobs: jobKeys,
+                clientId,
+                clientSecret,
+                environment
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showToast('Jobs started successfully', 'success');
+            outputBox.innerHTML = `<div style="color: #10b981;">✓ Job execution initiated</div>
+<div style="color: #94a3b8;">Jobs: ${jobKeys.join(', ')}</div>
+<div style="color: #94a3b8;">Process ID: ${data.processId}</div>
+<div style="margin-top: 1rem; color: #94a3b8;">Check the application logs in the terminal for detailed output.</div>`;
+        } else {
+            showToast('Failed to execute jobs: ' + data.error, 'error');
+            outputBox.innerHTML = `<div style="color: #ef4444;">✗ Error: ${data.error}</div>`;
+        }
+    } catch (error) {
+        showToast('Error executing jobs: ' + error.message, 'error');
+        outputBox.innerHTML = `<div style="color: #ef4444;">✗ Error: ${error.message}</div>`;
+    }
+}
+
+// Clear output
+function clearOutput() {
+    document.getElementById('executionOutput').innerHTML = '<div class="output-placeholder">Execution output will appear here...</div>';
+}
+
+// Show toast notification
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.className = 'toast show ' + type;
+    
+    setTimeout(() => {
+        toast.classList.remove('show');
+    }, 3000);
+}
