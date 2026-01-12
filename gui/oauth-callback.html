@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Callback - Open Data Exporter</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #f8fafc;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #ff4f1f;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .message {
+            color: #1e293b;
+            font-size: 1.1rem;
+            margin-bottom: 1rem;
+        }
+        .error {
+            color: #dc2626;
+        }
+        .success {
+            color: #16a34a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <div id="message" class="message">Processing authentication...</div>
+    </div>
+
+    <script>
+        (function() {
+            const messageEl = document.getElementById('message');
+            
+            try {
+                // Parse URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const code = urlParams.get('code');
+                const state = urlParams.get('state');
+                const error = urlParams.get('error');
+                const errorDescription = urlParams.get('error_description');
+
+                if (error) {
+                    messageEl.textContent = 'Authentication failed: ' + (errorDescription || error);
+                    messageEl.classList.add('error');
+                    
+                    // Notify parent window
+                    if (window.opener) {
+                        window.opener.postMessage({ 
+                            type: 'oauth_error', 
+                            error: error,
+                            errorDescription: errorDescription 
+                        }, window.location.origin);
+                    }
+                    
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                    return;
+                }
+
+                if (!code || !state) {
+                    messageEl.textContent = 'Invalid callback: missing authorization code or state';
+                    messageEl.classList.add('error');
+                    setTimeout(() => {
+                        window.close();
+                    }, 3000);
+                    return;
+                }
+
+                // Send code and state to parent window for token exchange
+                if (window.opener) {
+                    window.opener.postMessage({ 
+                        type: 'oauth_callback', 
+                        code: code, 
+                        state: state 
+                    }, window.location.origin);
+                    
+                    messageEl.textContent = 'Authentication successful! You can close this window.';
+                    messageEl.classList.add('success');
+                    
+                    setTimeout(() => {
+                        window.close();
+                    }, 2000);
+                } else {
+                    // Fallback if no opener (redirect case)
+                    messageEl.textContent = 'Exchanging authorization code for token...';
+                    
+                    // Get redirect URI from storage or use default
+                    const redirectUri = localStorage.getItem('oauth_redirect_uri') || window.location.origin + window.location.pathname;
+                    
+                    // Exchange code for token
+                    fetch('/api/oauth/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, state, redirectUri })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Store token
+                            sessionStorage.setItem('oauth_access_token', data.accessToken);
+                            sessionStorage.setItem('oauth_token_type', data.tokenType);
+                            sessionStorage.setItem('oauth_expires_in', data.expiresIn);
+                            sessionStorage.setItem('oauth_timestamp', Date.now());
+                            
+                            messageEl.textContent = 'Authentication successful! Redirecting...';
+                            messageEl.classList.add('success');
+                            
+                            setTimeout(() => {
+                                window.location.href = '/';
+                            }, 1000);
+                        } else {
+                            messageEl.textContent = 'Token exchange failed: ' + (data.error || 'Unknown error');
+                            messageEl.classList.add('error');
+                        }
+                    })
+                    .catch(error => {
+                        messageEl.textContent = 'Token exchange failed: ' + error.message;
+                        messageEl.classList.add('error');
+                    });
+                }
+            } catch (error) {
+                messageEl.textContent = 'Error processing callback: ' + error.message;
+                messageEl.classList.add('error');
+            }
+        })();
+    </script>
+</body>
+</html>

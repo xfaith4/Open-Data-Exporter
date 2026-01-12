@@ -55,6 +55,28 @@ Api.prototype.login = function() {
 	return deferred.promise;
 };
 
+Api.prototype.loginWithAccessToken = function(accessToken) {
+	let deferred = Q.defer();
+
+	if (!accessToken || accessToken === '') {
+		deferred.reject(new Error('Authentication error: Access token not provided'));
+		return deferred.promise;
+	}
+
+	try {
+		// Set the access token directly on the client
+		this.client.setAccessToken(accessToken);
+		log.verbose('Successfully authenticated with access token');
+		deferred.resolve();
+	} catch(err) {
+		let e = new Error('Authentication failed! Invalid access token');
+		log.error(err);
+		deferred.reject(e);
+	}
+
+	return deferred.promise;
+};
+
 Api.prototype.postConversationsDetailsQuery = function(request, _this, deferred, results) {
 	if (!deferred) 
 		deferred = Q.defer();

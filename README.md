@@ -24,14 +24,18 @@ The GUI provides an intuitive web interface to configure and execute data export
 
 3. **Configure and run:**
    - Load an example configuration or create a new one
-   - Enter your Genesys Cloud Client ID, Client Secret, and Environment
+   - Choose authentication method:
+     - **Client Credentials**: Enter Client ID, Client Secret, and Environment
+     - **PKCE OAuth** (Recommended): Enter Client ID, Redirect URI, and Environment, then click "Login with Genesys Cloud"
    - Select jobs to execute
    - Click "Execute Selected Jobs" or "Execute All Jobs"
 
 **GUI Features:**
 
 - 📁 Load example configurations or create new ones
-- 🔐 Manage Genesys Cloud credentials (Client ID, Secret, Environment)
+- 🔐 Flexible authentication options:
+  - Client Credentials (Client ID + Secret) for server-to-server apps
+  - PKCE OAuth (Client ID + Login) for secure user-based authentication
 - 📋 View and select jobs from configurations
 - ▶️ Execute jobs with a single click
 - 📊 Real-time execution feedback
@@ -56,6 +60,34 @@ You can still use the traditional command line interface:
 
 - **List jobs:** `node ./src /config=./examples/abandon_report/config.json /listjobs`
 - **Run jobs immediately (one-shot):** `node ./src /config=./examples/abandon_report/config.json /runnow` (runs all jobs unless `/jobs=...` is specified)
+
+## Authentication Options
+
+Open Data Exporter supports two authentication methods with Genesys Cloud:
+
+### Client Credentials (Traditional)
+
+Best for server-to-server applications and automated workflows.
+
+1. Create an OAuth Client in Genesys Cloud Admin with **Client Credentials** grant type
+2. Configure with Client ID and Client Secret
+3. Use in both GUI and CLI modes
+
+### PKCE OAuth (Recommended for GUI)
+
+More secure authentication method that doesn't require storing client secrets. Ideal for user-based authentication.
+
+1. Create an OAuth Client in Genesys Cloud Admin with **Authorization Code** grant type
+2. Add `http://localhost:3000/oauth-callback.html` (or your custom redirect URI) to the **Authorized redirect URIs**
+3. In the GUI:
+   - Select "PKCE OAuth (Client ID + Login)" as the authentication method
+   - Enter your Client ID and Environment
+   - The Redirect URI will be auto-populated (customize if needed)
+   - Click "Login with Genesys Cloud" to authenticate
+4. The application will open a popup window for you to log in to Genesys Cloud
+5. After successful login, you'll be authenticated and can execute jobs
+
+**Note:** PKCE OAuth is only available in GUI mode. For CLI mode, use Client Credentials.
 
 # Features
 

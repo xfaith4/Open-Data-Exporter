@@ -2,6 +2,7 @@
   "purecloud": {
     "clientId": "",
     "clientSecret": "",
+    "redirectUri": "",
     "timeout": 10000,
     "environment": ""
   },

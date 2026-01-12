@@ -46,16 +46,34 @@
                 </h2>
                 
                 <div class="form-group">
+                    <label for="authMethod">Authentication Method:</label>
+                    <select id="authMethod" class="form-control">
+                        <option value="client_credentials">Client Credentials (Client ID + Secret)</option>
+                        <option value="pkce">PKCE OAuth (Client ID + Login)</option>
+                    </select>
+                    <div class="form-help">
+                        PKCE is more secure and recommended for user-based authentication.
+                    </div>
+                </div>
+                
+                <div class="form-group">
                     <label for="clientId">Client ID:</label>
                     <input type="text" id="clientId" class="form-control" placeholder="Enter your Genesys Cloud Client ID">
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="clientSecretGroup">
                     <label for="clientSecret">Client Secret:</label>
                     <input type="password" id="clientSecret" class="form-control" placeholder="Enter your Genesys Cloud Client Secret">
                     <div class="form-help">
-                        Get credentials from: 
-                        <a href="https://apps.mypurecloud.com" target="_blank">Genesys Cloud Admin</a>
+                        Only required for Client Credentials authentication.
+                    </div>
+                </div>
+
+                <div class="form-group" id="redirectUriGroup" style="display: none;">
+                    <label for="redirectUri">Redirect URI:</label>
+                    <input type="text" id="redirectUri" class="form-control" placeholder="http://localhost:3000/oauth-callback.html">
+                    <div class="form-help">
+                        This must match the redirect URI configured in your Genesys Cloud OAuth client.
                     </div>
                 </div>
 
@@ -72,9 +90,18 @@
                     <input type="number" id="timeout" class="form-control" value="10000">
                 </div>
 
-                <button id="saveConfigBtn" class="btn btn-primary">
-                    💾 Save Configuration
-                </button>
+                <div class="form-group" id="authStatusGroup" style="display: none;">
+                    <div id="authStatus" class="auth-status"></div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="loginBtn" class="btn btn-success" style="display: none;">
+                        🔐 Login with Genesys Cloud
+                    </button>
+                    <button id="saveConfigBtn" class="btn btn-primary">
+                        💾 Save Configuration
+                    </button>
+                </div>
             </section>
 
             <!-- Jobs Section -->
