@@ -16,6 +16,7 @@ function setupEventListeners() {
     document.getElementById('saveConfigBtn').addEventListener('click', saveConfiguration);
     document.getElementById('executeSelectedBtn').addEventListener('click', executeSelectedJobs);
     document.getElementById('executeAllBtn').addEventListener('click', executeAllJobs);
+    document.getElementById('exportSummaryBtn').addEventListener('click', exportSummary);
     document.getElementById('clearOutputBtn').addEventListener('click', clearOutput);
     
     // Auto-update jobs when config changes
@@ -275,6 +276,61 @@ async function executeJobs(jobKeys) {
 // Clear output
 function clearOutput() {
     document.getElementById('executionOutput').innerHTML = '<div class="output-placeholder">Execution output will appear here...</div>';
+}
+
+// Export summary
+function exportSummary() {
+    if (!currentConfig || !currentJobs || currentJobs.length === 0) {
+        showToast('No configuration or jobs loaded to export', 'error');
+        return;
+    }
+
+    const configPath = document.getElementById('configPath').value;
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    
+    // Create summary text content
+    let summaryText = 'GENESYS CLOUD DATA EXPORTER - CONFIGURATION SUMMARY\n';
+    summaryText += '='.repeat(60) + '\n\n';
+    summaryText += `Export Date: ${new Date().toLocaleString()}\n`;
+    summaryText += `Configuration Path: ${configPath}\n\n`;
+    
+    summaryText += 'CREDENTIALS\n';
+    summaryText += '-'.repeat(60) + '\n';
+    summaryText += `Client ID: ${document.getElementById('clientId').value || 'Not set'}\n`;
+    summaryText += `Environment: ${document.getElementById('environment').value || 'Not set'}\n`;
+    summaryText += `Timeout: ${document.getElementById('timeout').value || '10000'} ms\n\n`;
+    
+    summaryText += 'JOBS\n';
+    summaryText += '-'.repeat(60) + '\n';
+    currentJobs.forEach((job, index) => {
+        summaryText += `${index + 1}. ${job.name}\n`;
+        summaryText += `   Key: ${job.key}\n`;
+        summaryText += `   Schedule: ${job.cron}\n\n`;
+    });
+    
+    summaryText += 'CONFIGURATION SUMMARY\n';
+    summaryText += '-'.repeat(60) + '\n';
+    summaryText += `Total Jobs: ${currentJobs.length}\n`;
+    summaryText += `Total Requests: ${Object.keys(currentConfig.requests || {}).length}\n`;
+    summaryText += `Total Transforms: ${Object.keys(currentConfig.transforms || {}).length}\n`;
+    summaryText += `Total Templates: ${Object.keys(currentConfig.templates || {}).length}\n`;
+    summaryText += `Total Exports: ${Object.keys(currentConfig.exports || {}).length}\n\n`;
+    
+    summaryText += '='.repeat(60) + '\n';
+    summaryText += 'End of Summary\n';
+    
+    // Create and download the file
+    const blob = new Blob([summaryText], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `genesys-cloud-config-summary-${timestamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    showToast('Summary exported successfully!', 'success');
 }
 
 // Show toast notification

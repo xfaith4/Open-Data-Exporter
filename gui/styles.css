@@ -1,6 +1,6 @@
 :root {
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
+    --primary-color: #ff4f1f;
+    --primary-hover: #e63900;
     --success-color: #16a34a;
     --success-hover: #15803d;
     --secondary-color: #64748b;
@@ -35,7 +35,7 @@ body {
 }
 
 .header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #ff4f1f 0%, #ff6a3d 100%);
     color: white;
     padding: 2rem 1rem;
     box-shadow: var(--shadow-lg);
@@ -116,7 +116,7 @@ body {
 .form-control:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    box-shadow: 0 0 0 3px rgba(255, 79, 31, 0.1);
 }
 
 .input-row {
