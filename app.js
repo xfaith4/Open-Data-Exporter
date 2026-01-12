@@ -75,8 +75,13 @@ app.get('/api/examples', (req, res) => {
             dirs.forEach(dir => {
                 const configPath = path.join(examplesDir, dir, 'config.json');
                 if (fs.existsSync(configPath)) {
+                    // Format the display name: remove underscores and capitalize words
+                    const displayName = dir
+                        .split('_')
+                        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                        .join(' ');
                     examples.push({
-                        name: dir,
+                        name: displayName,
                         path: `./src/examples/${dir}/config.json`
                     });
                 }

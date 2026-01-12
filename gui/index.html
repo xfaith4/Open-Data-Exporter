@@ -11,7 +11,7 @@
         <header class="header">
             <div class="header-content">
                 <h1>🔄 Open Data Exporter</h1>
-                <p class="subtitle">Configure and execute PureCloud data export jobs</p>
+                <p class="subtitle">Configure and execute Genesys Cloud data export jobs</p>
             </div>
         </header>
 
@@ -39,23 +39,23 @@
                 </div>
             </section>
 
-            <!-- PureCloud Credentials Section -->
+            <!-- Genesys Cloud Credentials Section -->
             <section class="card">
                 <h2 class="section-title">
-                    <span class="icon">🔐</span> PureCloud Credentials
+                    <span class="icon">🔐</span> Genesys Cloud Credentials
                 </h2>
                 
                 <div class="form-group">
                     <label for="clientId">Client ID:</label>
-                    <input type="text" id="clientId" class="form-control" placeholder="Enter your PureCloud Client ID">
+                    <input type="text" id="clientId" class="form-control" placeholder="Enter your Genesys Cloud Client ID">
                 </div>
 
                 <div class="form-group">
                     <label for="clientSecret">Client Secret:</label>
-                    <input type="password" id="clientSecret" class="form-control" placeholder="Enter your PureCloud Client Secret">
+                    <input type="password" id="clientSecret" class="form-control" placeholder="Enter your Genesys Cloud Client Secret">
                     <div class="form-help">
                         Get credentials from: 
-                        <a href="https://apps.mypurecloud.com" target="_blank">PureCloud Admin</a>
+                        <a href="https://apps.mypurecloud.com" target="_blank">Genesys Cloud Admin</a>
                     </div>
                 </div>
 
@@ -63,7 +63,7 @@
                     <label for="environment">Environment:</label>
                     <input type="text" id="environment" class="form-control" placeholder="e.g., mypurecloud.com">
                     <div class="form-help">
-                        Examples: mypurecloud.com, mypurecloud.ie, mypurecloud.jp, etc.
+                        Examples: mypurecloud.com, mypurecloud.ie, mypurecloud.com.au, etc.
                     </div>
                 </div>
 
@@ -93,6 +93,9 @@
                     </button>
                     <button id="executeAllBtn" class="btn btn-success">
                         ⏩ Execute All Jobs
+                    </button>
+                    <button id="exportSummaryBtn" class="btn btn-secondary">
+                        📥 Export Summary
                     </button>
                 </div>
             </section>
