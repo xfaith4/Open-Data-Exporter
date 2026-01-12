@@ -9,7 +9,20 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const rateLimit = require('express-rate-limit');
 const app = express();
+
+// Rate limiting middleware to prevent abuse
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: 'Too many requests from this IP, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// Apply rate limiting to all API routes
+app.use('/api/', apiLimiter);
 
 // Middleware
 app.use(express.json());
