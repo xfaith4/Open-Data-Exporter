@@ -1,0 +1,203 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 15000
+  },
+  "requests": {
+    "get_queues": {
+      "name": "Get queues",
+      "type": "getQueues",
+      "strategy": "single",
+      "getAllPages": true,
+      "parameters": {
+        "pageSize": 100,
+        "pageNumber": 1,
+        "active": true
+      }
+    },
+    "daily_voice_queue_agg": {
+      "name": "Daily voice queue aggregates",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "granularity": "P1D",
+        "groupBy": [
+          "queueId"
+        ],
+        "metrics": [
+          "nOffered",
+          "tAnswered",
+          "tAbandon",
+          "tHandle",
+          "tWait",
+          "tFlowOut",
+          "tShortAbandon",
+          "nOverSla",
+          "oServiceLevel",
+          "oServiceTarget"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+            {
+              "dimension": "mediaType",
+              "value": "voice"
+            },
+            {
+              "dimension": "purpose",
+              "value": "acd"
+            }
+          ]
+        }
+      }
+    },
+    "daily_abandons_detail": {
+      "name": "Recent abandons (sample)",
+      "type": "conversationDetail",
+      "strategy": "single",
+      "getAllPages": false,
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "order": "desc",
+        "orderBy": "conversationStart",
+        "paging": {
+          "pageSize": 50
+        },
+        "segmentFilters": [
+          {
+            "type": "and",
+            "clauses": [
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "disconnectType",
+                    "operator": "matches",
+                    "value": "peer"
+                  },
+                  {
+                    "type": "dimension",
+                    "dimension": "purpose",
+                    "operator": "matches",
+                    "value": "acd"
+                  }
+                ]
+              },
+              {
+                "type": "and",
+                "predicates": [
+                  {
+                    "type": "dimension",
+                    "dimension": "mediaType",
+                    "operator": "matches",
+                    "value": "voice"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "set_customer_participants": {
+      "name": "Decorate abandon conversations",
+      "type": "transform",
+      "expressions": [
+        "{{#def.report_module.setCustomerParticipants(def.data.daily_abandons_detail)}}"
+      ]
+    },
+    "prepare_report": {
+      "name": "Prepare report card data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.report_module.prepareReport(def.data)}}"
+      ]
+    },
+    "write_data": {
+      "name": "Write JSON snapshot",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data.report, '../local/daily_conversation_report_card/report.json')}}"
+      ]
+    }
+  },
+  "templates": {
+    "report_card_template": {
+      "name": "Daily conversation report card",
+      "templateFile": "./examples/daily_conversation_report_card/report_card_template.html",
+      "fileName": "daily_conversation_report_card_{{#def.datetimeOperations.formatDate(def.vars.date,'YYYY_MM_DD')}}.html"
+    }
+  },
+  "exports": {
+    "report_card_export": {
+      "name": "Daily report card export",
+      "type": "file",
+      "destination": "../local/daily_conversation_report_card/",
+      "customData": {
+        "reportType": "daily_conversation_report_card"
+      }
+    }
+  },
+  "configurations": {
+    "daily_conversation_report_card_config": {
+      "name": "Daily Conversation Report Card",
+      "externalModules": {
+        "report_module": "./examples/daily_conversation_report_card/extensions.js"
+      },
+      "executionPlan": {
+        "get_queues": {
+          "$ref": "#/requests/get_queues"
+        },
+        "daily_voice_queue_agg": {
+          "$ref": "#/requests/daily_voice_queue_agg"
+        },
+        "daily_abandons_detail": {
+          "$ref": "#/requests/daily_abandons_detail"
+        },
+        "set_customer_participants": {
+          "$ref": "#/transforms/set_customer_participants"
+        },
+        "prepare_report": {
+          "$ref": "#/transforms/prepare_report"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "report_card_template": {
+          "$ref": "#/templates/report_card_template"
+        }
+      },
+      "exports": {
+        "report_card_export": {
+          "$ref": "#/exports/report_card_export"
+        }
+      },
+      "customData": {
+        "interval": "P1D",
+        "timezoneOverride": "America/Indiana/Indianapolis"
+      }
+    }
+  },
+  "jobs": {
+    "daily_conversation_report_card_job": {
+      "name": "Daily Conversation Report Card",
+      "configurations": {
+        "daily_conversation_report_card_config": {
+          "$ref": "#/configurations/daily_conversation_report_card_config"
+        }
+      },
+      "cron": "0 0 6 * * *",
+      "customData": {}
+    }
+  },
+  "customData": {
+    "company": "Your Org"
+  }
+}

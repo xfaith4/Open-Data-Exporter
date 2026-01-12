@@ -1,0 +1,21 @@
+
+{
+  "author": "Genesys Developer",
+  "title": "Open Data Exporter",
+  "logo_url": "https://developer.genesys.cloud/images/genesys-icon.svg",
+  "description": "An open source data export tool",
+  "categories": [
+    "applications"
+  ],
+  "tags": [
+    "example",
+    "analytics",
+    "reporting"
+  ],
+  "apis": [
+    "platform"
+  ],
+  "sdks": [
+    "JavaScript"
+  ]
+}

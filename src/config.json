@@ -1,0 +1,103 @@
+{
+  "purecloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000,
+    "environment": ""
+  },
+  "requests": {
+    "request_name": {
+      "name": "",
+      "type": "",
+      "strategy": "",
+      "collection": "",
+      "target": "",
+      "body": {},
+      "parameters": {},
+      "getAllPages": true,
+      "transforms": {
+        "transform_name": {
+          "$ref": "#/transforms/transform_name"
+        }
+      },
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "transforms": {
+    "transform_name": {
+      "name": "",
+      "type": "transform",
+      "expressions": [
+        ""
+      ],
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "templates": {
+    "template_name": {
+      "name": "",
+      "template": "",
+      "templateFile": "",
+      "fileName": "",
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "exports": {
+    "export_name": {
+      "name": "",
+      "type": "file",
+      "destination": "",
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "configurations": {
+    "configuration_name": {
+      "name": "",
+      "externalModules": {
+        "name": "path"
+      },
+      "executionPlan": {
+        "request_name": {
+          "$ref": "#/requests/request_name"
+        },
+        "transform_name": {
+          "$ref": "#/transforms/transform_name"
+        }
+      },
+      "templates": {
+        "template_name": {
+          "$ref": "#/templates/template_name"
+        }
+      },
+      "exports": {
+        "export_name": {
+          "$ref": "#/exports/export_name"
+        }
+      },
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "jobs": {
+    "job_name": {
+      "name": "",
+      "configurations": {},
+      "cron": "",
+      "customData": {
+        "key": "value"
+      }
+    }
+  },
+  "customData": {
+    "key": "value"
+  }
+}

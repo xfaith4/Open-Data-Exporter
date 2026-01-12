@@ -1,0 +1,469 @@
+{
+  "pureCloud": {
+    "clientId": "",
+    "clientSecret": "",
+    "timeout": 10000,
+    "environment": "mypurecloud.com"
+  },
+  "requests": {
+    "verint_agent_scorecard_report_call_query": {
+      "name": "Verint Agent Scorecard Report - Call Query",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "userId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+            {
+              "type": "dimension",
+              "dimension": "interactionType",
+              "operator": "matches",
+              "value": "contactcenter"
+            },
+            {
+              "type": "dimension",
+              "dimension": "mediaType",
+              "operator": "matches",
+              "value": "voice"
+            }
+          ]
+        },
+        "metrics": [
+          "tTalk",
+          "tAcw",
+          "tHeld",
+          "tHandle"
+        ]
+      }
+    },
+    "verint_agent_scorecard_report_user_query": {
+      "name": "Verint Agent Scorecard Report - User Query",
+      "type": "userAggregate",
+      "strategy": "single",
+      "transforms": {
+        "verint_agent_scorecard_report_user_query_transform": { "$ref": "#/transforms/verint_agent_scorecard_report_user_query_transform" }
+      },
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "userId"
+        ],
+        "filter": {
+          "type": "or",
+          "predicates": []
+        },
+        "metrics": [
+          "tAgentRoutingStatus"
+        ]
+      }
+    },
+    "verint_agent_scorecard_report_user_resolution_query": {
+      "name": "Verint Agent Scorecard Report - User Resolution Query",
+      "type": "getUsers",
+      "strategy": "single",
+      "transforms": {
+        "verint_agent_scorecard_report_user_resolution_query_populate_user_ids_transform": { "$ref": "#/transforms/verint_agent_scorecard_report_user_resolution_query_populate_user_ids_transform" }
+      },
+      "getAllPages": true,
+      "parameters": {
+        "pageSize": 500
+      }
+    },
+    "verint_get_queues_query": {
+      "name": "Get Queues Query",
+      "type": "getQueues",
+      "strategy": "single",
+      "getAllPages": true
+    },
+    "verint_call_stats_query": {
+      "name": "Verint Call Statistics Query",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "queueId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+           {
+            "type": "dimension",
+            "dimension": "mediaType",
+            "operator": "matches",
+            "value": "voice"
+           }
+          ]
+        },
+        "metrics": [
+          "nOffered",
+          "oServiceLevel",
+          "tAbandon",
+          "tWait",
+          "tHandle"
+        ]
+      }
+    },
+    "verint_email_stats_query": {
+      "name": "Verint Email Statistics Query",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "queueId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+           {
+            "type": "dimension",
+            "dimension": "mediaType",
+            "operator": "matches",
+            "value": "email"
+           }
+          ]
+        },
+        "metrics": [
+          "nOffered",
+          "oServiceLevel",
+          "tAbandon",
+          "tWait",
+          "tHandle"
+        ]
+      }
+    },
+    "verint_chat_stats_query": {
+      "name": "Verint Chat Statistics Query",
+      "type": "conversationAggregate",
+      "strategy": "single",
+      "getAllPages": true,
+      "body": {
+        "interval": "{{#def.vars.previousInterval}}",
+        "groupBy": [
+          "queueId"
+        ],
+        "filter": {
+          "type": "and",
+          "predicates": [
+           {
+            "type": "dimension",
+            "dimension": "mediaType",
+            "operator": "matches",
+            "value": "chat"
+           }
+          ]
+        },
+        "metrics": [
+          "nOffered",
+          "oServiceLevel",
+          "tAbandon",
+          "tWait",
+          "tHandle"
+        ]
+      }
+    }
+  },
+  "transforms": {
+    "verint_agent_scorecard_report_transform": {
+      "name": "Verint Agent Scorecard Report Transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.aggregateVerintData(def.data)}}",
+        "{{#def.dataOperations.flattenAggregateData(def.data.verint_agent_scorecard_report_call_query, 'tAgentRoutingStatus_ALL|tTalk|tAcw|tHeld|tHandle|tAgentRoutingStatus_AUX_IN_TIME|tAgentRoutingStatus_COMMUNICATING|tAgentRoutingStatus_IDLE')}}"
+      ]
+    },
+    "verint_agent_scorecard_report_user_query_transform": {
+      "name": "verint_agent_scorecard_report_user_query_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.populateUserIdPredicates(def.data.verint_agent_scorecard_report_call_query.results, def.vars.request)}}"
+      ]
+    },
+    "verint_agent_scorecard_report_user_resolution_query_populate_user_ids_transform": {
+      "name": "verint_agent_scorecard_report_user_resolution_query_populate_user_ids_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.populateUserIds(def.data.verint_agent_scorecard_report_call_query, def.vars.request)}}"
+      ]
+    },
+    "verint_agent_scorecard_report_flatten_user_resolution_query_data_transform": {
+      "name": "verint_agent_scorecard_report_flatten_user_resolution_query_data_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.flattenUserData(def.data.verint_agent_scorecard_report_user_resolution_query, def)}}"
+      ]
+    },
+    "aggregate_call_stat_data_transform": {
+      "name": "aggregate_call_stat_data_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.flattenQueueData(def.data)}}",
+        "{{#def.verint.aggregateMediaStatData(def.data.verint_call_stats_query, def.data.queues)}}"
+      ]
+    },
+    "aggregate_email_stat_data_transform": {
+      "name": "aggregate_email_stat_data_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.flattenQueueData(def.data)}}",
+        "{{#def.verint.aggregateMediaStatData(def.data.verint_email_stats_query, def.data.queues)}}"
+      ]
+    },
+    "aggregate_chat_stat_data_transform": {
+      "name": "aggregate_chat_stat_data_transform",
+      "type": "transform",
+      "expressions": [
+        "{{#def.verint.flattenQueueData(def.data)}}",
+        "{{#def.verint.aggregateMediaStatData(def.data.verint_chat_stats_query, def.data.queues)}}"
+      ]
+    },
+    "write_data": {
+      "name": "write_data",
+      "type": "transform",
+      "expressions": [
+        "{{#def.dataOperations.writeData(def.data, '../local/verint/data.json')}}"
+      ]
+    }
+  },
+  "templates": {
+    "verint_agent_scorecard_report_template": {
+      "name": "Verint Agent Scorecard Report template",
+      "template": "Verint Report\nDate:{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart, 'MM/DD/YYYY')}}\nStart Time:{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart, 'HH:mm')}}\nEnd Time:{{#def.datetimeOperations.formatDate(def.datetimeOperations.addDuration(def.vars.previousIntervalStart, def.vars.interval), 'HH:mm')}}\n\nAGENT_ID DATE STAFF_TIME TALK_TIME ACW_TIME HOLD_TIME AUX_ALL_TIME AUX_IN_TIME AUX_OUT_TIME IDLE_TIME ACDCALLS\n\n{{~it.data.verint_agent_scorecard_report_call_query.results :result}}{{=it.verint.getUserData(it.data.users, result.group.userId).email}} {{=it.datetimeOperations.formatDate(it.datetimeOperations.parseInterval(result.flatData.c0.interval).start, 'YYYY-MM-DD')}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_ALL.stats.sum}} {{=result.flatData.c0.flatMetrics.tTalk.stats.sum}} {{=result.flatData.c0.flatMetrics.tAcw.stats.sum}} {{=result.flatData.c0.flatMetrics.tHeld.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_AUX_IN_TIME.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_COMMUNICATING.stats.sum}} {{=result.flatData.c0.flatMetrics.tAgentRoutingStatus_IDLE.stats.sum}} {{=result.flatData.c0.flatMetrics.tHandle.stats.count}} \n{{~}}",
+      "fileName": "verint_agent_scorecard_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    },
+    "verint_call_stats_report_template": {
+      "name": "Verint Call Stats Report template",
+      "templateFile": "./examples/verint/call_stats_report_template.txt",
+      "fileName": "verint_call_stats_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    },
+    "verint_email_stats_report_template": {
+      "name": "Verint Email Stats Report template",
+      "templateFile": "./examples/verint/email_stats_report_template.txt",
+      "fileName": "verint_email_stats_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    },
+    "verint_chat_stats_report_template": {
+      "name": "Verint Chat Stats Report template",
+      "templateFile": "./examples/verint/chat_stats_report_template.txt",
+      "fileName": "verint_chat_stats_report_{{#def.datetimeOperations.formatDate(def.vars.previousIntervalStart,'YYYY_MM_DD_HH.mm')}}.txt"
+    }
+  },
+  "exports": {
+    "verint_file_export": {
+      "name": "Verint file export",
+      "type": "file",
+      "destination": "../local/verint/",
+      "customData": {}
+    }
+  },
+  "configurations": {
+    "verint_agent_scorecard_report_config": {
+      "name": "AGENT DETAIL REPORT",
+      "externalModules": {
+        "verint": "./examples/verint/extensions.js"
+      },
+      "executionPlan": {
+        "verint_agent_scorecard_report_call_query": {
+          "$ref": "#/requests/verint_agent_scorecard_report_call_query"
+        },
+        "verint_agent_scorecard_report_user_query": {
+          "$ref": "#/requests/verint_agent_scorecard_report_user_query"
+        },
+        "verint_agent_scorecard_report_transform": {
+          "$ref": "#/transforms/verint_agent_scorecard_report_transform"
+        },
+        "verint_agent_scorecard_report_user_resolution_query": {
+          "$ref": "#/requests/verint_agent_scorecard_report_user_resolution_query"
+        },
+        "verint_agent_scorecard_report_flatten_user_resolution_query_data_transform": {
+          "$ref": "#/transforms/verint_agent_scorecard_report_flatten_user_resolution_query_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "verint_agent_scorecard_report_template": {
+          "$ref": "#/templates/verint_agent_scorecard_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "PT1H"
+      }
+    },
+    "verint_call_stats_report_config": {
+      "name": "Call Statistics Report",
+      "externalModules": {
+        "verint": "./examples/verint/extensions.js"
+      },
+      "executionPlan": {
+        "verint_get_queues_query": {
+          "$ref": "#/requests/verint_get_queues_query"
+        },
+        "verint_call_stats_query": {
+          "$ref": "#/requests/verint_call_stats_query"
+        },
+        "aggregate_call_stat_data_transform": {
+          "$ref": "#/transforms/aggregate_call_stat_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "verint_call_stats_report_template": {
+          "$ref": "#/templates/verint_call_stats_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "PT1H"
+      }
+    },
+    "verint_email_stats_report_config": {
+      "name": "Email Statistics Report",
+      "externalModules": {
+        "verint": "./examples/verint/extensions.js"
+      },
+      "executionPlan": {
+        "verint_get_queues_query": {
+          "$ref": "#/requests/verint_get_queues_query"
+        },
+        "verint_email_stats_query": {
+          "$ref": "#/requests/verint_email_stats_query"
+        },
+        "aggregate_email_stat_data_transform": {
+          "$ref": "#/transforms/aggregate_email_stat_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "verint_email_stats_report_template": {
+          "$ref": "#/templates/verint_email_stats_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "PT1H"
+      }
+    },
+    "verint_chat_stats_report_config": {
+      "name": "Chat Statistics Report",
+      "externalModules": {
+        "verint": "./examples/verint/extensions.js"
+      },
+      "executionPlan": {
+        "verint_get_queues_query": {
+          "$ref": "#/requests/verint_get_queues_query"
+        },
+        "verint_chat_stats_query": {
+          "$ref": "#/requests/verint_chat_stats_query"
+        },
+        "aggregate_chat_stat_data_transform": {
+          "$ref": "#/transforms/aggregate_chat_stat_data_transform"
+        },
+        "write_data": {
+          "$ref": "#/transforms/write_data"
+        }
+      },
+      "templates": {
+        "verint_chat_stats_report_template": {
+          "$ref": "#/templates/verint_chat_stats_report_template"
+        }
+      },
+      "exports": {
+        "verint_file_export": {
+          "$ref": "#/exports/verint_file_export"
+        }
+      },
+      "customData": {
+        "interval": "PT1H"
+      }
+    }
+  },
+  "jobs": {
+    "verint_agent_scorecard_report_job": {
+      "name": "Verint Agent Scorecard Report job",
+      "configurations": {
+        "verint_agent_scorecard_report_config": {
+          "$ref": "#/configurations/verint_agent_scorecard_report_config"
+        }
+      },
+      "cron": "0 0 */1 * * *",
+      "customData": {}
+    },
+    "verint_call_stats_report_job": {
+      "name": "Verint Call Stats Report job",
+      "configurations": {
+        "verint_call_stats_report_config": {
+          "$ref": "#/configurations/verint_call_stats_report_config"
+        }
+      },
+      "cron": "0 0 */1 * * *",
+      "customData": {}
+    },
+    "verint_email_stats_report_job": {
+      "name": "Verint Email Stats Report job",
+      "configurations": {
+        "verint_email_stats_report_config": {
+          "$ref": "#/configurations/verint_email_stats_report_config"
+        }
+      },
+      "cron": "0 0 */1 * * *",
+      "customData": {}
+    },
+    "verint_chat_stats_report_job": {
+      "name": "Verint Chat Stats Report job",
+      "configurations": {
+        "verint_chat_stats_report_config": {
+          "$ref": "#/configurations/verint_chat_stats_report_config"
+        }
+      },
+      "cron": "0 0 */1 * * *",
+      "customData": {}
+    },
+    "verint_all": {
+      "name": "Verint all jobs",
+      "configurations": {
+        "verint_agent_scorecard_report_config": {
+          "$ref": "#/configurations/verint_agent_scorecard_report_config"
+        },
+        "verint_call_stats_report_config": {
+          "$ref": "#/configurations/verint_call_stats_report_config"
+        },
+        "verint_email_stats_report_config": {
+          "$ref": "#/configurations/verint_email_stats_report_config"
+        },
+        "verint_chat_stats_report_config": {
+          "$ref": "#/configurations/verint_chat_stats_report_config"
+        }
+      },
+      "cron": "0 0 */1 * * *",
+      "customData": {}
+    }
+  },
+  "customData": {
+    "timezoneOverride": "America/Indianapolis"
+  }
+}
