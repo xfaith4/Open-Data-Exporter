@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Data Exporter - GUI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <h1>🔄 Open Data Exporter</h1>
+                <p class="subtitle">Configure and execute PureCloud data export jobs</p>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Configuration Section -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="icon">⚙️</span> Configuration
+                </h2>
+                
+                <div class="form-group">
+                    <label for="configSelect">Load Configuration:</label>
+                    <div class="input-row">
+                        <select id="configSelect" class="form-control">
+                            <option value="">-- Select Example --</option>
+                        </select>
+                        <button id="loadConfigBtn" class="btn btn-secondary">Load</button>
+                        <button id="newConfigBtn" class="btn btn-secondary">New</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="configPath">Config File Path:</label>
+                    <input type="text" id="configPath" class="form-control" value="./src/config.json">
+                </div>
+            </section>
+
+            <!-- PureCloud Credentials Section -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="icon">🔐</span> PureCloud Credentials
+                </h2>
+                
+                <div class="form-group">
+                    <label for="clientId">Client ID:</label>
+                    <input type="text" id="clientId" class="form-control" placeholder="Enter your PureCloud Client ID">
+                </div>
+
+                <div class="form-group">
+                    <label for="clientSecret">Client Secret:</label>
+                    <input type="password" id="clientSecret" class="form-control" placeholder="Enter your PureCloud Client Secret">
+                    <div class="form-help">
+                        Get credentials from: 
+                        <a href="https://apps.mypurecloud.com" target="_blank">PureCloud Admin</a>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="environment">Environment:</label>
+                    <input type="text" id="environment" class="form-control" placeholder="e.g., mypurecloud.com">
+                    <div class="form-help">
+                        Examples: mypurecloud.com, mypurecloud.ie, mypurecloud.jp, etc.
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="timeout">Timeout (ms):</label>
+                    <input type="number" id="timeout" class="form-control" value="10000">
+                </div>
+
+                <button id="saveConfigBtn" class="btn btn-primary">
+                    💾 Save Configuration
+                </button>
+            </section>
+
+            <!-- Jobs Section -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="icon">📋</span> Jobs
+                </h2>
+                
+                <div id="jobsList" class="jobs-list">
+                    <div class="loading">Load a configuration to view jobs</div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="executeSelectedBtn" class="btn btn-success">
+                        ▶️ Execute Selected Jobs
+                    </button>
+                    <button id="executeAllBtn" class="btn btn-success">
+                        ⏩ Execute All Jobs
+                    </button>
+                </div>
+            </section>
+
+            <!-- Output Section -->
+            <section class="card">
+                <h2 class="section-title">
+                    <span class="icon">📊</span> Execution Output
+                </h2>
+                
+                <div id="executionOutput" class="output-box">
+                    <div class="output-placeholder">
+                        Execution output will appear here...
+                    </div>
+                </div>
+                
+                <button id="clearOutputBtn" class="btn btn-secondary">
+                    🗑️ Clear Output
+                </button>
+            </section>
+        </div>
+
+        <footer class="footer">
+            <p>&copy; 2024 Open Data Exporter | <a href="https://github.com/xfaith4/Open-Data-Exporter" target="_blank">GitHub</a></p>
+        </footer>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
