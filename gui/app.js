@@ -286,7 +286,7 @@ function exportSummary() {
     }
 
     const configPath = document.getElementById('configPath').value;
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
     
     // Create summary text content
     let summaryText = 'GENESYS CLOUD DATA EXPORTER - CONFIGURATION SUMMARY\n';
@@ -320,17 +320,21 @@ function exportSummary() {
     summaryText += 'End of Summary\n';
     
     // Create and download the file
-    const blob = new Blob([summaryText], { type: 'text/plain' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `genesys-cloud-config-summary-${timestamp}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
-    
-    showToast('Summary exported successfully!', 'success');
+    try {
+        const blob = new Blob([summaryText], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `genesys-cloud-config-summary-${timestamp}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showToast('Summary exported successfully!', 'success');
+    } catch (error) {
+        showToast('Failed to export summary: ' + error.message, 'error');
+    }
 }
 
 // Show toast notification
